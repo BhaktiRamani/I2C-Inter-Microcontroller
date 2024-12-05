@@ -30,6 +30,7 @@
 #include <math.h>       /* Mathematical functions */
 #include <string.h>     /* String operations */
 
+
 /* MCU Hardware Includes */
 #include <stm32f091xc.h> /* MCU specific definitions */
 #include <stm32f0xx.h>   /* STM32F0 common definitions */
@@ -70,11 +71,12 @@ int main(void)
     /* Initialize printf output via ST-Link COM port */
     printf(" Hello world\n\r");
 
-    uint8_t slave_address = 0x78;
+    uint8_t slave_address = 0x3D;
     i2c1__init__(slave_address);
+    OLED_Init();
     printf("Initialization complete\n\r");
 //    i2c_write(slave_address);
-    i2c_write(0x55);
+
 
 //    i2c_start();
 //    i2c_slave_address(slave_address);

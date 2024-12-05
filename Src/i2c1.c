@@ -7,6 +7,7 @@
 
 #include "i2c1.h"
 
+#define OLED_I2C_ADDR 0x3C
 
 void i2c1__init__(uint8_t slave_address)
 {
@@ -40,7 +41,9 @@ void i2c1__init__(uint8_t slave_address)
 
 	//Peripheral input clock- TIMEOUT register
     I2C1->CR1 &= ~I2C_CR1_PE;
+//	I2C1->TIMINGR |= (uint32_t)0x2000090E;
 	I2C1->TIMINGR |= (uint32_t)0x00B01A4B;
+	I2C1 -> CR1 |= I2C_CR1_NOSTRETCH;
 	I2C1->CR1 |= I2C_CR1_PE;
 	//I2C1->CR2 |= I2C_CR2_AUTOEND | (1 << 16) | (slave_address << 1);
 
@@ -56,46 +59,83 @@ void i2c_start(void)
 
 }
 
-void i2c_write(uint8_t data)
+void I2C_WriteCommand(uint8_t command)
 {
-	//Waiting for transmit buffer to be set
-	/* Check Tx empty */
 
-    // Wait for Transmit Buffer Empty
-    while (!(I2C1->ISR & I2C_ISR_TXE));
+	while((I2C1 -> ISR & I2C_ISR_BUSY));
 
-    // Configure for write
-    I2C1->CR2 = (I2C_CR2_AUTOEND |
-                 (1 << 16) | // 1 byte
-                 (0x78 << 1)); // Slave address
+	I2C1 -> CR2 = 0;
+
+	I2C1 -> CR2 = I2C_CR2_AUTOEND | (2<<16) | (OLED_I2C_ADDR << 1);
+
+
+//    // Configure for write
+//    //setting the 7 bit address mode
+//    I2C1 -> CR2 &= ~(I2C_CR2_ADD10);
+//    //setting the direction for transfer
+//    I2C1->CR2 &= ~(I2C_CR2_RD_WRN);
+//
+//    //setting the number of bytes to be transferred
+//    I2C1->CR2 |= (1 << 16);
+//
+//    I2C1->CR2 |= (slave_addr << 1); // Slave address
 
     i2c_start();
-	I2C1->TXDR = data; // For transmitting data
-    // Wait for the address to be transmitted and acknowledged
-    while (!(I2C1->ISR & I2C_ISR_ADDR));
+    while (!(I2C1->ISR & I2C_ISR_TXE)){;}
+    I2C1 -> TXDR = OLED_I2C_ADDR;
 
-    // Clear the ADDR flag
-    // Important: Reading the ISR register and then writing to the ICR register clears the ADDR flag
-    (void)I2C1->ISR;  // Read to clear
-    I2C1->ICR |= I2C_ICR_ADDRCF;  // Alternatively, you can use the ICR (Interrupt Clear Register)
-    // Wait for Transmit Interrupt Status
-    while (!(I2C1->ISR & I2C_ISR_TXIS)){;}
+    while (!(I2C1->ISR & I2C_ISR_TXE)){;}
+    I2C1 -> TXDR = command;
 
-	// Issue start condition
-	//i2c_start();
+    while(!((I2C1 -> ISR & (1 << 5))));
 
-	// Wait for the address to be transmitted and acknowledged
-//	while (!(I2C1->ISR & I2C_ISR_ADDR));
+    I2C1 -> ICR |= I2C_ICR_STOPCF;
+
+//    // Important: Reading the ISR register and then writing to the ICR register clears the ADDR flag
+//    (void)I2C1->ISR;  // Read to clear
+//    I2C1->ICR |= I2C_ICR_ADDRCF;  // Alternatively, you can use the ICR (Interrupt Clear Register)
 //
-//	// Clear the ADDR flag
-//	(void)I2C1->ISR;
+//    while (!(I2C1->ISR & I2C_ISR_TXE)){;}
+//	I2C1->TXDR = data; // For transmitting data
+//
+//    // Wait for Transmit Interrupt Status
+//    while (!(I2C1->ISR & I2C_ISR_TXIS)){;}
+//    i2c_stop();
 
-	// Transmit or receive data as needed
-	I2C1->TXDR = data; // For transmitting data
 
 
+}
 
+// Example OLED Initialization Commands
+void OLED_Init(void) {
+	// Basic initialization sequence for SSD1306
+	I2C_WriteCommand(0xAE);  // Display OFF
+	I2C_WriteCommand(0xD5);  // Set Display Clock Divide Ratio
+	I2C_WriteCommand(0x80);  // Default value
+	I2C_WriteCommand(0xA8);  // Set Multiplex Ratio
+	I2C_WriteCommand(0x3F);  // 64 COM lines
+	I2C_WriteCommand(0xD3);  // Set Display Offset
+	I2C_WriteCommand(0x00);  // No offset
+	I2C_WriteCommand(0x40);
+	// Set Start Line (Line #0)
+	I2C_WriteCommand(0x8D);  // Charge Pump Setting
+	I2C_WriteCommand(0x14);  // Enable Charge Pump
+	I2C_WriteCommand(0x20);  // Memory Addressing Mode
+	I2C_WriteCommand(0x00);  // Horizontal Addressing Mode
 
+	I2C_WriteCommand(0xA1);  // Segment Remap
+	I2C_WriteCommand(0xC8);  // COM Output Scan Direction
+	I2C_WriteCommand(0xDA);  // COM Pins Configuration
+	I2C_WriteCommand(0x12);  // Alternative COM pin config
+	I2C_WriteCommand(0x81);  // Contrast Control
+	I2C_WriteCommand(0x34);  // Brightness value
+	I2C_WriteCommand(0xD9);  // Pre-charge Period
+	I2C_WriteCommand(0xF1);  //
+	I2C_WriteCommand(0xDB);  // VCOMH Deselect Level
+	I2C_WriteCommand(0x40);  //
+	I2C_WriteCommand(0xA4);  // Entire Display On/Off
+	I2C_WriteCommand(0xA6);  // Normal display (not inverted)
+	I2C_WriteCommand(0xAF);  // Display ON }
 }
 
 void i2c_slave_address(uint8_t slave_address)

@@ -18,8 +18,9 @@
 #include <stdio.h>      /* Standard I/O operations */
 
 void i2c1__init__(uint8_t slave_address);
+void OLED_Init(void);
 void i2c_start(void);
-void i2c_write(uint8_t data);
+void I2C_WriteCommand(uint8_t command);
 void i2c_slave_address(uint8_t slave_address);
 void i2c_stop(void);
 #endif /* I2C1_H_ */
