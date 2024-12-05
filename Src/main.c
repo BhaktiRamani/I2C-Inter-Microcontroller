@@ -37,6 +37,7 @@
 /* Project-Specific Includes */
 #include <utilities.h>    /* Utility functions */
 
+#include"i2c1.h"
 
 /* System Configuration Constants */
 #define SYSTEM_CLOCK_FREQ   (48000000U) /* 48 MHz system clock */
@@ -69,8 +70,17 @@ int main(void)
     /* Initialize printf output via ST-Link COM port */
     printf(" Hello world\n\r");
 
+    uint8_t slave_address = 0x78;
+    i2c1__init__(slave_address);
+    printf("Initialization complete\n\r");
+//    i2c_write(slave_address);
+    i2c_write(0x55);
 
-
+//    i2c_start();
+//    i2c_slave_address(slave_address);
+//    i2c_write(0xff);
+//    i2c_stop();
+    printf("DONE\n\r");
     /* Main program loop */
     while(1)
     {
