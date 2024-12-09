@@ -59,84 +59,76 @@ void i2c_start(void)
 
 }
 
-void I2C_WriteCommand(uint8_t command)
+void I2C_WriteCommand(uint8_t RegisterAddress, uint8_t data)
 {
 
 	while((I2C1 -> ISR & I2C_ISR_BUSY));
 
 	I2C1 -> CR2 = 0;
 
-	I2C1 -> CR2 = I2C_CR2_AUTOEND | (2<<16) | (OLED_I2C_ADDR << 1);
+	I2C1 -> CR2 = I2C_CR2_AUTOEND | (3<<16) | (OLED_I2C_ADDR << 1 );
 
-
-//    // Configure for write
-//    //setting the 7 bit address mode
-//    I2C1 -> CR2 &= ~(I2C_CR2_ADD10);
-//    //setting the direction for transfer
-//    I2C1->CR2 &= ~(I2C_CR2_RD_WRN);
-//
-//    //setting the number of bytes to be transferred
-//    I2C1->CR2 |= (1 << 16);
-//
-//    I2C1->CR2 |= (slave_addr << 1); // Slave address
 
     i2c_start();
+    //check if txdr is empty (means if bit is set)
+	//sending the slave address
     while (!(I2C1->ISR & I2C_ISR_TXE)){;}
-    I2C1 -> TXDR = OLED_I2C_ADDR;
+    I2C1 -> TXDR = ((OLED_I2C_ADDR << 1 ) | 0);
 
+
+	//sending the register address, basically to determine read or write
     while (!(I2C1->ISR & I2C_ISR_TXE)){;}
-    I2C1 -> TXDR = command;
+    I2C1 -> TXDR = RegisterAddress;
 
-    while(!((I2C1 -> ISR & (1 << 5))));
+	//sending the actual data
+    while (!(I2C1->ISR & I2C_ISR_TXE)){;}
+    I2C1 -> TXDR = data;
 
-    I2C1 -> ICR |= I2C_ICR_STOPCF;
+	//waiting for I2C to generate the stop bit
+     while(!((I2C1 -> ISR & (1 << 5))));
+     I2C1 -> ICR |= I2C_ICR_STOPCF;
 
-//    // Important: Reading the ISR register and then writing to the ICR register clears the ADDR flag
-//    (void)I2C1->ISR;  // Read to clear
-//    I2C1->ICR |= I2C_ICR_ADDRCF;  // Alternatively, you can use the ICR (Interrupt Clear Register)
-//
-//    while (!(I2C1->ISR & I2C_ISR_TXE)){;}
-//	I2C1->TXDR = data; // For transmitting data
-//
-//    // Wait for Transmit Interrupt Status
-//    while (!(I2C1->ISR & I2C_ISR_TXIS)){;}
-//    i2c_stop();
-
+	//generating the stop bit mannually 
+//	i2c_stop();
+	delay(50);
 
 
 }
 
-// Example OLED Initialization Commands
-void OLED_Init(void) {
-	// Basic initialization sequence for SSD1306
-	I2C_WriteCommand(0xAE);  // Display OFF
-	I2C_WriteCommand(0xD5);  // Set Display Clock Divide Ratio
-	I2C_WriteCommand(0x80);  // Default value
-	I2C_WriteCommand(0xA8);  // Set Multiplex Ratio
-	I2C_WriteCommand(0x3F);  // 64 COM lines
-	I2C_WriteCommand(0xD3);  // Set Display Offset
-	I2C_WriteCommand(0x00);  // No offset
-	I2C_WriteCommand(0x40);
-	// Set Start Line (Line #0)
-	I2C_WriteCommand(0x8D);  // Charge Pump Setting
-	I2C_WriteCommand(0x14);  // Enable Charge Pump
-	I2C_WriteCommand(0x20);  // Memory Addressing Mode
-	I2C_WriteCommand(0x00);  // Horizontal Addressing Mode
+void i2c_multi_write(uint8_t RegisterAddress, uint8_t *data, uint8_t n_data)
+{
+	while((I2C1 -> ISR & I2C_ISR_BUSY));
 
-	I2C_WriteCommand(0xA1);  // Segment Remap
-	I2C_WriteCommand(0xC8);  // COM Output Scan Direction
-	I2C_WriteCommand(0xDA);  // COM Pins Configuration
-	I2C_WriteCommand(0x12);  // Alternative COM pin config
-	I2C_WriteCommand(0x81);  // Contrast Control
-	I2C_WriteCommand(0x34);  // Brightness value
-	I2C_WriteCommand(0xD9);  // Pre-charge Period
-	I2C_WriteCommand(0xF1);  //
-	I2C_WriteCommand(0xDB);  // VCOMH Deselect Level
-	I2C_WriteCommand(0x40);  //
-	I2C_WriteCommand(0xA4);  // Entire Display On/Off
-	I2C_WriteCommand(0xA6);  // Normal display (not inverted)
-	I2C_WriteCommand(0xAF);  // Display ON }
+	I2C1 -> CR2 = 0;
+
+	I2C1 -> CR2 |= (OLED_I2C_ADDR << 1 | 0);
+
+
+    i2c_start();
+    //check if txdr is empty (means if bit is set)
+	//sending the slave address
+    while (!(I2C1->ISR & I2C_ISR_TXE)){;}
+    I2C1 -> TXDR = OLED_I2C_ADDR | 0;
+
+	//sending the register address, basically to determine read or write
+    while (!(I2C1->ISR & I2C_ISR_TXE)){;}
+    I2C1 -> TXDR = RegisterAddress;
+
+    for(int i = 0; i < n_data; i++ )
+    {
+        while (!(I2C1->ISR & I2C_ISR_TXE)){;}
+        I2C1 -> TXDR = *data;
+
+        //while(!((I2C1 -> ISR & (1 << 5))));
+        data++;
+    }
+
+    void i2c_stop(void);
+
+
 }
+
+
 
 void i2c_slave_address(uint8_t slave_address)
 {
@@ -153,6 +145,18 @@ void i2c_stop(void)
 	while((I2C1 -> ISR & (1<< 6)) != 0);
 }
 
+/*
+ * Delay function.
+ */
+void delay(uint32_t t)
+{
+	// Simple delay loop.
+	uint32_t cnt = 0;
+	for (cnt = 0; cnt < t; cnt++)
+	{
+		__asm("nop");
+	};
+}
 
 
 
