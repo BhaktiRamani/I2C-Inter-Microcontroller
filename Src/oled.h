@@ -1,3 +1,4 @@
+
 #ifndef _OLED_H_
 #define _OLED_H_
 
@@ -13,7 +14,7 @@
 #define SSD1306_SEND_CMD(cmd) 		I2C_WriteCommand(0x00, cmd)
 #define SSD1306_SEND_DATA(data)		I2C_WriteCommand(0x40, data)
 void oled_trial_commands(void);
-
+void OLED_Test_Commands(void);
 void oled_set_cursor(uint8_t column, uint8_t page);
 
 void oled_print_char(char c);
@@ -21,6 +22,7 @@ void oled_print_char(char c);
 void oled_print_string(const char *str);
 
 void oled_clear(void);
+
 
 // 5x8 Font Array for OLED Display
 // First value is ASCII value, following 5 values represent the pixel columns
