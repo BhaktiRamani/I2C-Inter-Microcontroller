@@ -66,7 +66,7 @@ void I2C_WriteCommand(uint8_t RegisterAddress, uint8_t data)
 
 	I2C1 -> CR2 = 0;
 
-	I2C1 -> CR2 = I2C_CR2_AUTOEND | (3<<16) | (OLED_I2C_ADDR << 1 );
+	I2C1 -> CR2 = I2C_CR2_AUTOEND | (2<<16) | (OLED_I2C_ADDR << 1 );
 
 
     i2c_start();
@@ -77,8 +77,8 @@ void I2C_WriteCommand(uint8_t RegisterAddress, uint8_t data)
 
 
 	//sending the register address, basically to determine read or write
-    while (!(I2C1->ISR & I2C_ISR_TXE)){;}
-    I2C1 -> TXDR = RegisterAddress;
+//    while (!(I2C1->ISR & I2C_ISR_TXE)){;}
+//    I2C1 -> TXDR = RegisterAddress;
 
 	//sending the actual data
     while (!(I2C1->ISR & I2C_ISR_TXE)){;}
