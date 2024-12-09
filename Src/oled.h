@@ -10,6 +10,8 @@
 
 #include "i2c1.h"
 
+#define SSD1306_SEND_CMD(cmd) 		I2C_WriteCommand(0x00, cmd)
+#define SSD1306_SEND_DATA(data)		I2C_WriteCommand(0x40, data)
 void oled_trial_commands(void);
 
 void oled_set_cursor(uint8_t column, uint8_t page);

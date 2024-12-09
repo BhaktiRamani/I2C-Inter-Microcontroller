@@ -1,7 +1,6 @@
 #include "oled.h"
 
-#define SSD1306_SEND_CMD(cmd) 		I2C_WriteCommand(0x00, cmd)
-#define SSD1306_SEND_DATA(data)		I2C_WriteCommand(0x40, data)
+
 static uint8_t cursor_column_x = 0;
 static uint8_t cursor_page_y = 0;
 
