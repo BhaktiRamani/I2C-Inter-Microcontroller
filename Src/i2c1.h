@@ -30,7 +30,6 @@ void i2c_slave_address(uint8_t slave_address);
 void i2c_multi_write(uint8_t RegisterAddress, uint8_t *data, uint8_t n_data);
 void i2c_stop(void);
 
-uint8_t i2c_WaitForFlag(uint32_t flag, uint32_t timeout);
 
 
 void delay(uint32_t t);

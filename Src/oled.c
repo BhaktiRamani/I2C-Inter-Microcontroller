@@ -10,7 +10,20 @@ static uint8_t cursor_column_x = 0;
 static uint8_t cursor_page_y = 0;
 
 /* SSD1306 data buffer */
-//static uint8_t SSD1306_Buffer[SSD1306_WIDTH * SSD1306_HEIGHT / 8];
+static uint8_t SSD1306_Buffer[SSD1306_WIDTH * SSD1306_HEIGHT / 8];
+
+typedef struct {
+	uint16_t CurrentX;
+	uint16_t CurrentY;
+	uint8_t Inverted;
+	uint8_t Initialized;
+} SSD1306_t;
+
+static SSD1306_t SSD1306;
+
+
+
+
 
 // Example OLED Initialization Commands
 void oled_trial_commands(void) {
@@ -43,115 +56,199 @@ void oled_trial_commands(void) {
 	SSD1306_SEND_CMD(0xA6);  // Normal display (not inverted)
 	SSD1306_SEND_CMD(0xAF);  // Display ON }
 
-	SSD1306_SEND_CMD(0x2E);  // Display ON }
+	SSD1306_SEND_CMD(0x2E);  // Deactivate scroll
+
+
+	fill_SSD1306();
+	updateScreen_SSD1306();
+	gotoXY_SSD1306 (0,5);
+	puts_SSD1306 ("Hello World", &Font_7x10, SSD1306_COLOR_WHITE);
+	updateScreen_SSD1306();
+
+	oled_print_string("heyya");
+	/* Set default values */
+	SSD1306.CurrentX = 0;
+	SSD1306.CurrentY = 0;
+	
+	/* Initialized OK */
+	SSD1306.Initialized = 1;
 
 
 }
 
-// Function to send data to OLED
-void OLED_SendData(uint8_t data) {
-    while((I2C1 -> ISR & I2C_ISR_BUSY));
 
-    I2C1 -> CR2 = 0;
-    I2C1 -> CR2 = I2C_CR2_AUTOEND | (2<<16) | (0x3C << 1);
-
-    i2c_start();
-
-    while (!(I2C1->ISR & I2C_ISR_TXE));
-    I2C1 -> TXDR = 0x40;  // Control byte for data
-
-    while (!(I2C1->ISR & I2C_ISR_TXE));
-    I2C1 -> TXDR = data;
-
-    while(!((I2C1 -> ISR & (1 << 5))));
-    I2C1 -> ICR |= I2C_ICR_STOPCF;
-
-    delay(10);
+void fill_SSD1306() {
+	/* Set memory */
+	memset(SSD1306_Buffer,  0x00, sizeof(SSD1306_Buffer));
 }
 
-// SSD1306 Command Definitions
-#define OLED_DISPLAY_OFF          0xAE
-#define OLED_DISPLAY_ON           0xAF
-#define OLED_SET_CONTRAST         0x81
-#define OLED_SET_SEGMENT_REMAP    0xA1
-#define OLED_COM_SCAN_DIR_NORMAL  0xC0
-#define OLED_COM_SCAN_DIR_INVERTED 0xC8
-#define OLED_CHARGE_PUMP_SETTING  0x8D
+void updateScreen_SSD1306(void) {
+	uint8_t m;
 
-void OLED_Test_Commands(void) {
-    // Array of commands to test
-    uint8_t test_commands[] = {
-        // Contrast setting
-        OLED_SET_CONTRAST, 0x7F,   // Mid-level contrast
+	for (m = 0; m < 8; m++) {
+		SSD1306_SEND_CMD(0xB0 + m);
+		SSD1306_SEND_CMD(0x00); //lower colunm asddress
+		SSD1306_SEND_CMD(0x10);	//upper colunm address
 
-        // Segment remap (horizontal flip)
-        OLED_SET_SEGMENT_REMAP, 0x01,
+		/* Write multi data */
+		i2c_multi_write(0x40, &SSD1306_Buffer[SSD1306_WIDTH * m],  SSD1306_WIDTH);
+	}
+}
 
-        // COM scan direction
-        OLED_COM_SCAN_DIR_INVERTED,
+void gotoXY_SSD1306(uint16_t x, uint16_t y) {
+	/* Set write pointers */
+	SSD1306.CurrentX = x;
+	SSD1306.CurrentY = y;
+}
 
-        // Charge pump setting
-        OLED_CHARGE_PUMP_SETTING, 0x14,  // Enable charge pump
+char putc_SSD1306(char ch, FontDef_t* Font, SSD1306_COLOR_t color) {
+	uint32_t i, b, j;
 
-        // Briefly turn off and on
-        OLED_DISPLAY_OFF,
-        OLED_DISPLAY_ON
-    };
+	/* Check available space in LCD */
+	if (
+		SSD1306_WIDTH <= (SSD1306.CurrentX + Font->FontWidth) ||
+		SSD1306_HEIGHT <= (SSD1306.CurrentY + Font->FontHeight)
+	) {
+		/* Error */
+		return 0;
+	}
 
-    while(1)
-    {
+	/* Go through font */
+	for (i = 0; i < Font->FontHeight; i++) {
+		b = Font->data[(ch - 32) * Font->FontHeight + i];
+		for (j = 0; j < Font->FontWidth; j++) {
+			if ((b << j) & 0x8000) {
+				drawPixel_SSD1306(SSD1306.CurrentX + j, (SSD1306.CurrentY + i), (SSD1306_COLOR_t) color);
+			} else {
+				drawPixel_SSD1306(SSD1306.CurrentX + j, (SSD1306.CurrentY + i), (SSD1306_COLOR_t)!color);
+			}
+		}
+	}
+
+	/* Increase pointer */
+	SSD1306.CurrentX += Font->FontWidth;
+
+	/* Return character written */
+	return ch;
+}
+
+char puts_SSD1306(char* str, FontDef_t* Font, SSD1306_COLOR_t color) {
+	/* Write characters */
+	while (*str) {
+		/* Write character by character */
+		if (putc_SSD1306(*str, Font, color) != *str) {
+			/* Return error */
+			return *str;
+		}
+
+		/* Increase string pointer */
+		str++;
+	}
+
+	/* Everything OK, zero should be returned */
+	return *str;
+}
 
 
-    // Iterate through commands
-    for (int i = 0; i < sizeof(test_commands); i++) {
-        // Wait if I2C is busy
-        while((I2C1 -> ISR & I2C_ISR_BUSY));
+void drawPixel_SSD1306(uint16_t x, uint16_t y, SSD1306_COLOR_t color) {
+	if (
+		x >= SSD1306_WIDTH ||
+		y >= SSD1306_HEIGHT
+	) {
+		/* Error */
+		return;
+	}
 
-        // Reset CR2
-        I2C1 -> CR2 = 0;
+	/* Check if pixels are inverted */
+	if (SSD1306.Inverted) {
+		color = (SSD1306_COLOR_t)!color;
+	}
 
-        // Configure transmission
-        I2C1 -> CR2 = I2C_CR2_AUTOEND | (2<<16) | (0x3C << 1);
+	/* Set color */
+	if (color == SSD1306_COLOR_WHITE) {
+		SSD1306_Buffer[x + (y / 8) * SSD1306_WIDTH] |= 1 << (y % 8);
+	} else {
+		SSD1306_Buffer[x + (y / 8) * SSD1306_WIDTH] &= ~(1 << (y % 8));
+	}
+}
 
-        // Start transmission
-        i2c_start();
 
-        // Wait for TXE and send control byte (0x00 for command)
-        while (!(I2C1->ISR & I2C_ISR_TXE));
-        I2C1 -> TXDR = 0x3C;  // Control byte for command
 
-        // Wait for TXE and send command
-        while (!(I2C1->ISR & I2C_ISR_TXE));
-        I2C1 -> TXDR = test_commands[i];
+void drawLine_SSD1306(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, SSD1306_COLOR_t c) {
+	int16_t dx, dy, sx, sy, err, e2, i, tmp;
 
-        // Wait for stop bit
-        while(!((I2C1 -> ISR & (1 << 5))));
-        I2C1 -> ICR |= I2C_ICR_STOPCF;
-
-        // Delay between commands
-        delay(50);
+    /* Check for and correct any overflow in coordinates */
+    if (x0 >= SSD1306_WIDTH) {
+        x0 = SSD1306_WIDTH - 1;
     }
+    if (x1 >= SSD1306_WIDTH) {
+        x1 = SSD1306_WIDTH - 1;
+    }
+    if (y0 >= SSD1306_HEIGHT) {
+        y0 = SSD1306_HEIGHT - 1;
+    }
+    if (y1 >= SSD1306_HEIGHT) {
+        y1 = SSD1306_HEIGHT - 1;
+    }
+
+    // Calculate differences and steps in x and y directions.
+    dx = (x0 < x1) ? (x1 - x0) : (x0 - x1);
+    dy = (y0 < y1) ? (y1 - y0) : (y0 - y1);
+    sx = (x0 < x1) ? 1 : -1;
+    sy = (y0 < y1) ? 1 : -1;
+    err = ((dx > dy) ? dx : -dy) / 2;
+
+    // Handle vertical lines.
+    if (dx == 0) {
+        // Swap y0 and y1 if y0 is greater.
+        if (y1 < y0) {
+            tmp = y1;
+            y1 = y0;
+            y0 = tmp;
+        }
+
+        // Draw vertical line.
+        for (i = y0; i <= y1; i++) {
+            drawPixel_SSD1306(x0, i, c);
+        }
+
+        return; // Exit function after drawing vertical line.
+    }
+
+    // Handle horizontal lines.
+    if (dy == 0) {
+        // Swap x0 and x1 if x0 is greater.
+        if (x1 < x0) {
+            tmp = x1;
+            x1 = x0;
+            x0 = tmp;
+        }
+
+        // Draw horizontal line.
+        for (i = x0; i <= x1; i++) {
+            drawPixel_SSD1306(i, y0, c);
+        }
+
+        return; // Exit function after drawing horizontal line.
+    }
+
+    // Draw diagonal lines using Bresenham's algorithm.
+    while (1) {
+        drawPixel_SSD1306(x0, y0, c);
+        if (x0 == x1 && y0 == y1) {
+            break; // Exit loop when end point is reached.
+        }
+        e2 = err;
+        if (e2 > -dx) {
+            err -= dy;
+            x0 += sx;
+        }
+        if (e2 < dy) {
+            err += dx;
+            y0 += sy;
+        }
     }
 }
-
-//void fill_SSD1306() {
-//	/* Set memory */
-//	memset(SSD1306_Buffer,  0x00, sizeof(SSD1306_Buffer));
-//}
-//
-//void updateScreen_SSD1306(void) {
-//	uint8_t m;
-//
-//	for (m = 0; m < 8; m++) {
-//		SSD1306_SEND_COMMAND(0xB0 + m);
-//		SSD1306_SEND_COMMAND(0x00); //lower colunm asddress
-//		SSD1306_SEND_COMMAND(0x10);	//upper colunm address
-//
-//		/* Write multi data */
-//		writeMultRegisterI2C(SSD1306_I2C_ADDR, 0x40, SSD1306_WIDTH, &SSD1306_Buffer[SSD1306_WIDTH * m]);
-//	}
-//}
-
 
 void oled_set_cursor(uint8_t column, uint8_t page)
 {
@@ -205,20 +302,13 @@ void oled_clear(void)
     // Set cursor to start
 	oled_set_cursor(0, 0);
 
+
     // Clear entire display (1024 bytes for 128x64 display)
-    for (int i = 0; i < 1024; i++) {
-        OLED_SendData(0x00);
-    }
+//    for (int i = 0; i < 1024; i++) {
+//    	SSD1306_SEND_DATA(0x00);
+//    }
 
     // Reset cursor
     oled_set_cursor(0, 0);
-//	uint8_t data[(128 * 64 )/ 8];
-//	memset(data, 0x00, sizeof(data));
-//	i2c_multi_write(0x40, data, 128);
-    //oled_set_cursor(0, 0);
-//    for(int i = 0; i < 128 * 8; i++)
-//    {
-//        SSD1306_SEND_CMD(0x00);
-//    }
-//    oled_set_cursor(0, 0);
+
 }

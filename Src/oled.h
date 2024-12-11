@@ -10,6 +10,7 @@
 #include<string.h>
 
 #include "i2c1.h"
+#include "fonts.h"
 
 #define SSD1306_SEND_CMD(cmd) 		I2C_WriteCommand(0x00, cmd)
 #define SSD1306_SEND_DATA(data)		I2C_WriteCommand(0x40, data)
@@ -17,9 +18,28 @@ void oled_trial_commands(void);
 void OLED_Test_Commands(void);
 void oled_set_cursor(uint8_t column, uint8_t page);
 
+typedef enum {
+	SSD1306_COLOR_BLACK = 0x00,
+	SSD1306_COLOR_WHITE = 0x01
+}SSD1306_COLOR_t;
+
 void oled_print_char(char c);
 
 void oled_print_string(const char *str);
+
+void fill_SSD1306();
+
+void updateScreen_SSD1306(void);
+
+void gotoXY_SSD1306(uint16_t x, uint16_t y);
+
+char putc_SSD1306(char ch, FontDef_t* Font, SSD1306_COLOR_t color);
+
+char puts_SSD1306(char* str, FontDef_t* Font, SSD1306_COLOR_t color);
+
+void drawPixel_SSD1306(uint16_t x, uint16_t y, SSD1306_COLOR_t color);
+
+void drawLine_SSD1306(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, SSD1306_COLOR_t c);
 
 void oled_clear(void);
 

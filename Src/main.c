@@ -40,6 +40,7 @@
 
 #include"i2c1.h"
 #include "oled.h"
+#include"eeprom.h"
 
 /* System Configuration Constants */
 #define SYSTEM_CLOCK_FREQ   (48000000U) /* 48 MHz system clock */
@@ -77,17 +78,18 @@ int main(void)
 
     //oled_trial_commands();
 
-    //OLED_Test_Commands();
+    eeprom_write(0x00, 0x55, 0x55);
+    eeprom_read(0x55);
 
-     while(1)
-     {
-     	printf("off\n\r");
-     	SSD1306_SEND_CMD(0xAE);  // Display OFF
-     	//for(int i = 0; i< 1000000; i++);
-     	printf("on\n\r");
-     	SSD1306_SEND_CMD(0xAf);  // Display On
-
-     }
+//     while(1)
+//     {
+//     	printf("off\n\r");
+//     	SSD1306_SEND_CMD(0xAE);  // Display OFF
+//     	//for(int i = 0; i< 1000000; i++);
+//     	printf("on\n\r");
+//     	SSD1306_SEND_CMD(0xAf);  // Display On
+//
+//     }
 //    oled_clear();
 //   oled_set_cursor(0, 0);
 //   oled_print_char('A');

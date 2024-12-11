@@ -41,12 +41,32 @@ void i2c1__init__(uint8_t slave_address)
 
 	//Peripheral input clock- TIMEOUT register
     I2C1->CR1 &= ~I2C_CR1_PE;
+
+	//Recieve interrupt setup
+    I2C1->CR1 |= I2C_CR1_RXIE;
+
+    NVIC_SetPriority(I2C1_IRQn, 0);
+    NVIC_EnableIRQ(I2C1_IRQn);
+
+
 //	I2C1->TIMINGR |= (uint32_t)0x2000090E;
 	I2C1->TIMINGR |= (uint32_t)0x00B01A4B;
 	I2C1 -> CR1 |= I2C_CR1_NOSTRETCH;
 	I2C1->CR1 |= I2C_CR1_PE;
-	//I2C1->CR2 |= I2C_CR2_AUTOEND | (1 << 16) | (slave_address << 1);
 
+
+}
+
+volatile uint8_t i2c_rcv = 0;
+
+void I2C1_IRQHandler(void)
+{
+    // Verify interrupt status.
+    if ((I2C1->ISR & I2C_ISR_RXNE) == I2C_ISR_RXNE) {
+        // Read byte (which clears RXNE flag).
+        i2c_rcv = I2C1->RXDR;
+        printf("in interrupt\n\r");
+    }
 }
 
 void i2c_start(void)
@@ -62,74 +82,55 @@ void i2c_start(void)
 int I2C_WriteCommand(uint8_t RegisterAddress, uint8_t data)
 {
 
-	while((I2C1 -> ISR & I2C_ISR_BUSY)){;}
 
-//	I2C1 -> CR2 = 0;
+	while((I2C1 -> ISR & I2C_ISR_BUSY));
 
-	   // Configure transfer
-	    I2C1->CR2 = 0;
-	    I2C1->CR2 |= (1 << 13);
-	    I2C1->CR2 |= (OLED_I2C_ADDR << 1);  // Slave address
-	    I2C1->CR2 |= (2 << I2C_CR2_NBYTES_Pos);          // 2 bytes (control + command)
+	I2C1 -> CR2 = 0;
 
-	    //I2C1->CR2 |= I2C_CR2_AUTOEND;                    // Automatic END
+	I2C1 -> CR2 = I2C_CR2_AUTOEND | (2<<16) | (OLED_I2C_ADDR << 1 );
 
 
-
-//	I2C1 -> CR2 = I2C_CR2_AUTOEND | (3<<16) | (OLED_I2C_ADDR << 1 );
-
-	//while (!(I2C1->ISR & I2C_ISR_TXE)){;}
-    //i2c_start();
+    i2c_start();
     //check if txdr is empty (means if bit is set)
 	//sending the slave address
-    while (!(I2C1->ISR & I2C_ISR_TXE)){;}
-    I2C1 -> TXDR = OLED_I2C_ADDR;
-    printf("randon \n\r");
-   // while (!(I2C1->ISR & I2C_ISR_TXE)){;}
-
-//	//sending the register address, basically to determine read or write
 //    while (!(I2C1->ISR & I2C_ISR_TXE)){;}
-//    I2C1 -> TXDR = RegisterAddress;
-    //while (!(I2C1->ISR & I2C_ISR_TXE)){;}
-//
-//	//sending the actual data
+//    I2C1 -> TXDR = (OLED_I2C_ADDR);
+
+
+	//sending the register address, basically to determine read or write
+    while (!(I2C1->ISR & I2C_ISR_TXE)){;}
+    I2C1 -> TXDR = RegisterAddress;
+
+	//sending the actual data
     while (!(I2C1->ISR & I2C_ISR_TXE)){;}
     I2C1 -> TXDR = data;
-    //while (!(I2C1->ISR & I2C_ISR_TXE)){;}
-//
-//
-//
-//	//waiting for I2C to generate the stop bit
-//     while(!((I2C1 -> ISR & (1 << 5))));
-//     I2C1 -> ICR |= I2C_ICR_STOPCF;
+
+	//waiting for I2C to generate the stop bit
+     while(!((I2C1 -> ISR & (1 << 5))));
+     I2C1 -> ICR |= I2C_ICR_STOPCF;
 
 	//generating the stop bit mannually 
-	i2c_stop();
+//	i2c_stop();
 	delay(50);
 	return 0;
 }
 
-uint8_t i2c_WaitForFlag(uint32_t flag, uint32_t timeout) {
-    while (!(I2C1->ISR & flag)) {
-        if (--timeout == 0) return 0;
-    }
-    return 1;
-}
+
 void i2c_multi_write(uint8_t RegisterAddress, uint8_t *data, uint8_t n_data)
 {
 	while((I2C1 -> ISR & I2C_ISR_BUSY));
 
 	I2C1 -> CR2 = 0;
 
-	I2C1 -> CR2 |= (OLED_I2C_ADDR << 1);
+	I2C1 -> CR2 = I2C_CR2_AUTOEND | ((n_data + 1 )<<16) | (OLED_I2C_ADDR << 1 );
 
 
     i2c_start();
     //check if txdr is empty (means if bit is set)
-	//sending the slave address
+	//sending the commaqnd
     while (!(I2C1->ISR & I2C_ISR_TXE)){;}
-    I2C1 -> TXDR = OLED_I2C_ADDR;
-    while (!(I2C1->ISR & I2C_ISR_TXE)){;}
+    I2C1 -> TXDR = RegisterAddress;
+    
 
 //	//sending the register address, basically to determine read or write
 //    while (!(I2C1->ISR & I2C_ISR_TXE)){;}
@@ -137,18 +138,17 @@ void i2c_multi_write(uint8_t RegisterAddress, uint8_t *data, uint8_t n_data)
 
     for(int i = 0; i < n_data; i++ )
     {
-
+		while (!(I2C1->ISR & I2C_ISR_TXE)){;}
         I2C1 -> TXDR = *data;
-        while (!(I2C1->ISR & I2C_ISR_TXE)){;}
-
-        //while(!((I2C1 -> ISR & (1 << 5))));
         data++;
     }
 
-    void i2c_stop(void);
-
+   	//waiting for I2C to generate the stop bit
+     while(!((I2C1 -> ISR & (1 << 5))));
+     I2C1 -> ICR |= I2C_ICR_STOPCF;
 
 }
+
 
 
 
