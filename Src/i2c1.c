@@ -84,6 +84,7 @@ int I2C_WriteCommand(uint8_t RegisterAddress, uint8_t data)
 	//sending the slave address
     while (!(I2C1->ISR & I2C_ISR_TXE)){;}
     I2C1 -> TXDR = OLED_I2C_ADDR;
+    printf("randon \n\r");
    // while (!(I2C1->ISR & I2C_ISR_TXE)){;}
 
 //	//sending the register address, basically to determine read or write
