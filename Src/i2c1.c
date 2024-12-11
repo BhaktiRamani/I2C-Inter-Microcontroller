@@ -57,7 +57,7 @@ void i2c1__init__(uint8_t slave_address)
 
 }
 
-volatile uint8_t i2c_rcv = 0;
+volatile uint32_t i2c_rcv = 0;
 
 void I2C1_IRQHandler(void)
 {
@@ -66,6 +66,7 @@ void I2C1_IRQHandler(void)
         // Read byte (which clears RXNE flag).
         i2c_rcv = I2C1->RXDR;
         printf("in interrupt\n\r");
+        printf("i2c_rcv %ld\n\r", i2c_rcv);
     }
 }
 

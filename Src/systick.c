@@ -25,7 +25,8 @@ volatile int signal_state = 0;
 void SysTick_Handler(void)
 {
 
-    msTicks++;
+
+	msTicks++;
     if(msTicks >= TICK_VALUE_FOR_2S)
     {
     	GPIOA -> ODR ^= (1<< TRIAL_PIN_POSITION);

@@ -81,30 +81,61 @@ int main(void)
 
 	I2C1 -> CR2 = 0;
 
-	I2C1 -> CR2 = I2C_CR2_AUTOEND | (5<<16) | (8 << 1 );
+	I2C1 -> CR2 = I2C_CR2_AUTOEND | I2C_CR2_RD_WRN |  (2<<16) | (8 << 1 );
 
 
     i2c_start();
-    //check if txdr is empty (means if bit is set)
-	//sending the slave address
-//    while (!(I2C1->ISR & I2C_ISR_TXE)){;}
-//    I2C1 -> TXDR = (OLED_I2C_ADDR);
-
-
-    char *buffer = "Hello";
-
-    for(int i = 0; i < 8; i++)
+//    //check if txdr is empty (means if bit is set)
+//	//sending the slave address
+////    while (!(I2C1->ISR & I2C_ISR_TXE)){;}
+////    I2C1 -> TXDR = (OLED_I2C_ADDR);
+//
+//
+//    char *buffer = "Hello World";
+//
+//    for(int i = 0; i < 5; i++)
+//    {
+//    	//sending the actual data
+//        while (!(I2C1->ISR & I2C_ISR_TXE)){;}
+//        I2C1 -> TXDR = *buffer;
+//        buffer++;
+//    }
+//    =
+    uint32_t val[2] = {0};
+    for(int i = 0; i<2; i++)
     {
-    	//sending the actual data
-        while (!(I2C1->ISR & I2C_ISR_TXE)){;}
-        I2C1 -> TXDR = *buffer;
-        buffer++;
+        while (!(I2C1->ISR & I2C_ISR_RXNE));
+
+
+        val[i] = I2C1->RXDR;
     }
 
+
+//
+//    	    	uint8_t data2 = 0;
+//    	    	        while (!(I2C1->ISR & I2C_ISR_RXNE));
+//    	    	        data2 = I2C1->RXDR;
+//    	    	        (void)data2;
+//    char * data;
+//
+//    for(int i = 0; i < 11; i++)
+//    {
+//    	int timeout = 10000;
+//        while ((!(I2C1->ISR & I2C_ISR_RXNE)) && (timeout > 0))
+//        	{
+//        		timeout--;
+//        	}
+//        *data = I2C1->RXDR;
+//        data++;
+//
+//        I2C1 -> CR2 |= I2C_CR2_RD_WRN;
+//    }
 
 	//waiting for I2C to generate the stop bit
      while(!((I2C1 -> ISR & (1 << 5))));
      I2C1 -> ICR |= I2C_ICR_STOPCF;
+     printf("val[0]  %ld     val[1]   %ld\n\r", val[0], val[1]);
+
     //oled_trial_commands();
 //    humidity_read();
 
