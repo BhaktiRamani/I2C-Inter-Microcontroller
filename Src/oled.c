@@ -21,10 +21,6 @@ typedef struct {
 
 static SSD1306_t SSD1306;
 
-
-
-
-
 // Example OLED Initialization Commands
 void oled_trial_commands(void) {
 	// Basic initialization sequence for SSD1306
@@ -65,7 +61,6 @@ void oled_trial_commands(void) {
 	puts_SSD1306 ("Hello World", &Font_7x10, SSD1306_COLOR_WHITE);
 	updateScreen_SSD1306();
 
-	oled_print_string("heyya");
 	/* Set default values */
 	SSD1306.CurrentX = 0;
 	SSD1306.CurrentY = 0;

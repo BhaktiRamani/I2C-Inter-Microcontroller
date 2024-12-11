@@ -69,74 +69,53 @@
 *
 * @note        Serial console settings: 9600 baud, No parity, 1 stop bit
 ******************************************************************************/
+
+void arduino_rcv_msg();
+void arduino_send_msg();
 int main(void)
 {
     /* Initialize printf output via ST-Link COM port */
     printf("\r\nHello world\n\r");
+    printf("\n\r");
 
     uint8_t slave_address = 0x3C;
     i2c1__init__(slave_address);
-
-	while((I2C1 -> ISR & I2C_ISR_BUSY));
-
-	I2C1 -> CR2 = 0;
-
-	I2C1 -> CR2 = I2C_CR2_AUTOEND | I2C_CR2_RD_WRN |  (2<<16) | (8 << 1 );
-
-
-    i2c_start();
-//    //check if txdr is empty (means if bit is set)
-//	//sending the slave address
-////    while (!(I2C1->ISR & I2C_ISR_TXE)){;}
-////    I2C1 -> TXDR = (OLED_I2C_ADDR);
+    oled_trial_commands();
+//	while((I2C1 -> ISR & I2C_ISR_BUSY));
+//
+//	I2C1 -> CR2 = 0;
+//
+//	I2C1 -> CR2 = I2C_CR2_AUTOEND | I2C_CR2_RD_WRN |  (2<<16) | (8 << 1 );
+//	i2c_start();
+//
+//    while(!((I2C1 -> ISR & (1 << 5))));
+//    I2C1 -> ICR |= I2C_ICR_STOPCF;
 //
 //
-//    char *buffer = "Hello World";
+//    i2c_start();
+////    //check if txdr is empty (means if bit is set)
+////	//sending the slave address
+//////    while (!(I2C1->ISR & I2C_ISR_TXE)){;}
+//////    I2C1 -> TXDR = (OLED_I2C_ADDR);
+////
+////
+////    char *buffer = "Hello World";
+////
+////    for(int i = 0; i < 5; i++)
+////    {
+////    	//sending the actual data
+////        while (!(I2C1->ISR & I2C_ISR_TXE)){;}
+////        I2C1 -> TXDR = *buffer;
+////        buffer++;
+////    }
 //
-//    for(int i = 0; i < 5; i++)
-//    {
-//    	//sending the actual data
-//        while (!(I2C1->ISR & I2C_ISR_TXE)){;}
-//        I2C1 -> TXDR = *buffer;
-//        buffer++;
-//    }
-//    =
-    uint32_t val[2] = {0};
-    for(int i = 0; i<2; i++)
-    {
-        while (!(I2C1->ISR & I2C_ISR_RXNE));
+//	//waiting for I2C to generate the stop bit
+//     while(!((I2C1 -> ISR & (1 << 5))));
+//     I2C1 -> ICR |= I2C_ICR_STOPCF;
+//     printf("out of interuupt \n\r");
+     //printf("val[0]  %ld     val[1]   %ld\n\r", val[0], val[1]);
 
 
-        val[i] = I2C1->RXDR;
-    }
-
-
-//
-//    	    	uint8_t data2 = 0;
-//    	    	        while (!(I2C1->ISR & I2C_ISR_RXNE));
-//    	    	        data2 = I2C1->RXDR;
-//    	    	        (void)data2;
-//    char * data;
-//
-//    for(int i = 0; i < 11; i++)
-//    {
-//    	int timeout = 10000;
-//        while ((!(I2C1->ISR & I2C_ISR_RXNE)) && (timeout > 0))
-//        	{
-//        		timeout--;
-//        	}
-//        *data = I2C1->RXDR;
-//        data++;
-//
-//        I2C1 -> CR2 |= I2C_CR2_RD_WRN;
-//    }
-
-	//waiting for I2C to generate the stop bit
-     while(!((I2C1 -> ISR & (1 << 5))));
-     I2C1 -> ICR |= I2C_ICR_STOPCF;
-     printf("val[0]  %ld     val[1]   %ld\n\r", val[0], val[1]);
-
-    //oled_trial_commands();
 //    humidity_read();
 
 
@@ -149,19 +128,80 @@ int main(void)
 //     	SSD1306_SEND_CMD(0xAf);  // Display On
 //
 //     }
-//    oled_clear();
-//   oled_set_cursor(0, 0);
-//   oled_print_char('A');
-//    oled_print_string("Hello World");
 
-    printf("Initialization complete\n\r");
 
-    printf("DONE\n\r");
+    printf("Entering the loop\n\r");
+    printf("\n\r");
+
     /* Main program loop */
     while(1)
     {
-        /* System continues to operate via interrupts */
+    	printf("rcv req send \n\r");
+    	printf("\n\r");
+    	arduino_rcv_msg();
+
+        if(isr_flag)
+        {
+        	isr_flag = 0;
+        	//print the rcv data on OLED
+
+        	gotoXY_SSD1306 (0,5);
+        	puts_SSD1306 ("Temp : something", &Font_16x26, SSD1306_COLOR_WHITE);
+
+        	updateScreen_SSD1306();
+
+        	//send arduino msg back as data recieved
+        	arduino_send_msg();
+        	printf("send req send \n\r");
+        	printf("\n\r");
+
+        }
+        printf("isr_flag %d\n\r", isr_flag);
     }
 
     return 0;  /* Should never reach this point */
+}
+
+void arduino_send_msg()
+{
+	while((I2C1 -> ISR & I2C_ISR_BUSY));
+
+	I2C1 -> CR2 = 0;
+
+	I2C1 -> CR2 = I2C_CR2_AUTOEND | (14<<16) | (8 << 1 );
+	I2C1 -> CR2 &= ~I2C_CR2_RD_WRN;
+
+
+    i2c_start();
+
+        char *buffer = "Data  recieved";
+
+        for(int i = 0; i < 13; i++)
+        {
+        	//sending the actual data
+            while (!(I2C1->ISR & I2C_ISR_TXE)){;}
+            I2C1 -> TXDR = *buffer;
+            buffer++;
+        }
+
+        while(!((I2C1 -> ISR & (1 << 5))));
+        I2C1 -> ICR |= I2C_ICR_STOPCF;
+}
+
+void arduino_rcv_msg()
+{
+	while((I2C1 -> ISR & I2C_ISR_BUSY));
+
+	I2C1 -> CR2 = 0;
+
+	I2C1 -> CR2 = I2C_CR2_AUTOEND | I2C_CR2_RD_WRN |  (2<<16) | (8 << 1 );
+
+	i2c_start();
+
+    while(!((I2C1 -> ISR & (1 << 5))));
+    I2C1 -> ICR |= I2C_ICR_STOPCF;
+//    printf("out of interuupt \n\r");
+
+
+    i2c_start();
 }

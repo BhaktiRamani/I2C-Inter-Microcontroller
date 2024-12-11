@@ -57,7 +57,8 @@ void i2c1__init__(uint8_t slave_address)
 
 }
 
-volatile uint32_t i2c_rcv = 0;
+volatile uint32_t i2c_rcv;
+volatile int isr_flag = 0;
 
 void I2C1_IRQHandler(void)
 {
@@ -65,8 +66,11 @@ void I2C1_IRQHandler(void)
     if ((I2C1->ISR & I2C_ISR_RXNE) == I2C_ISR_RXNE) {
         // Read byte (which clears RXNE flag).
         i2c_rcv = I2C1->RXDR;
-        printf("in interrupt\n\r");
+        isr_flag = 1;
+
         printf("i2c_rcv %ld\n\r", i2c_rcv);
+        printf("\n\r");
+        printf("isr_flag %d\n\r", isr_flag);
     }
 }
 
@@ -94,8 +98,6 @@ int I2C_WriteCommand(uint8_t RegisterAddress, uint8_t data)
     i2c_start();
     //check if txdr is empty (means if bit is set)
 	//sending the slave address
-//    while (!(I2C1->ISR & I2C_ISR_TXE)){;}
-//    I2C1 -> TXDR = (OLED_I2C_ADDR);
 
 
 	//sending the register address, basically to determine read or write
