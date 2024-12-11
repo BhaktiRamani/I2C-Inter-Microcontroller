@@ -161,7 +161,7 @@ void oled_set_cursor(uint8_t column, uint8_t page)
     //for columns
     SSD1306_SEND_CMD(0x21);
     SSD1306_SEND_CMD(column);
-    SSD1306_SEND_CMD(0x7f);
+    SSD1306_SEND_CMD(column);
 
     //for page / rows
     SSD1306_SEND_CMD(0x22);

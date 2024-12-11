@@ -74,21 +74,23 @@ int main(void)
 
     uint8_t slave_address = 0x3C;
     i2c1__init__(slave_address);
-    oled_trial_commands();
+
+    //oled_trial_commands();
 
     //OLED_Test_Commands();
 
-    // while(1)
-    // {
-    // 	printf("off\n\r");
-    // 	SSD1306_SEND_CMD(0xAE);  // Display OFF
-    // 	for(int i = 0; i< 1000000; i++);
-    // 	printf("on\n\r");
+     while(1)
+     {
+     	printf("off\n\r");
+     	SSD1306_SEND_CMD(0xAE);  // Display OFF
+     	//for(int i = 0; i< 1000000; i++);
+     	printf("on\n\r");
      	SSD1306_SEND_CMD(0xAf);  // Display On
 
-    // }
+     }
 //    oled_clear();
 //   oled_set_cursor(0, 0);
+//   oled_print_char('A');
 //    oled_print_string("Hello World");
 
     printf("Initialization complete\n\r");

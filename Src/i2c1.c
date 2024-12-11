@@ -59,44 +59,61 @@ void i2c_start(void)
 
 }
 
-void I2C_WriteCommand(uint8_t RegisterAddress, uint8_t data)
+int I2C_WriteCommand(uint8_t RegisterAddress, uint8_t data)
 {
 
-	while((I2C1 -> ISR & I2C_ISR_BUSY));
+	while((I2C1 -> ISR & I2C_ISR_BUSY)){;}
 
-	I2C1 -> CR2 = 0;
+//	I2C1 -> CR2 = 0;
 
-	I2C1 -> CR2 = I2C_CR2_AUTOEND | (2<<16) | (OLED_I2C_ADDR << 1 );
+	   // Configure transfer
+	    I2C1->CR2 = 0;
+	    I2C1->CR2 |= (1 << 13);
+	    I2C1->CR2 |= (OLED_I2C_ADDR << 1);  // Slave address
+	    I2C1->CR2 |= (2 << I2C_CR2_NBYTES_Pos);          // 2 bytes (control + command)
+
+	    //I2C1->CR2 |= I2C_CR2_AUTOEND;                    // Automatic END
+
+
+
+//	I2C1 -> CR2 = I2C_CR2_AUTOEND | (3<<16) | (OLED_I2C_ADDR << 1 );
 
 	//while (!(I2C1->ISR & I2C_ISR_TXE)){;}
-    i2c_start();
-//    //check if txdr is empty (means if bit is set)
-//	//sending the slave address
+    //i2c_start();
+    //check if txdr is empty (means if bit is set)
+	//sending the slave address
     while (!(I2C1->ISR & I2C_ISR_TXE)){;}
     I2C1 -> TXDR = OLED_I2C_ADDR;
+   // while (!(I2C1->ISR & I2C_ISR_TXE)){;}
 
-
-
-
-	//sending the register address, basically to determine read or write
+//	//sending the register address, basically to determine read or write
 //    while (!(I2C1->ISR & I2C_ISR_TXE)){;}
 //    I2C1 -> TXDR = RegisterAddress;
-
-	//sending the actual data
+    //while (!(I2C1->ISR & I2C_ISR_TXE)){;}
+//
+//	//sending the actual data
     while (!(I2C1->ISR & I2C_ISR_TXE)){;}
     I2C1 -> TXDR = data;
-
-
-
-	//waiting for I2C to generate the stop bit
-     while(!((I2C1 -> ISR & (1 << 5))));
-     I2C1 -> ICR |= I2C_ICR_STOPCF;
+    //while (!(I2C1->ISR & I2C_ISR_TXE)){;}
+//
+//
+//
+//	//waiting for I2C to generate the stop bit
+//     while(!((I2C1 -> ISR & (1 << 5))));
+//     I2C1 -> ICR |= I2C_ICR_STOPCF;
 
 	//generating the stop bit mannually 
-//	i2c_stop();
+	i2c_stop();
 	delay(50);
+	return 0;
 }
 
+uint8_t i2c_WaitForFlag(uint32_t flag, uint32_t timeout) {
+    while (!(I2C1->ISR & flag)) {
+        if (--timeout == 0) return 0;
+    }
+    return 1;
+}
 void i2c_multi_write(uint8_t RegisterAddress, uint8_t *data, uint8_t n_data)
 {
 	while((I2C1 -> ISR & I2C_ISR_BUSY));

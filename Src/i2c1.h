@@ -16,11 +16,12 @@
 #include <utilities.h>    /* Utility functions */
 
 #include <stdio.h>      /* Standard I/O operations */
+#include<stdint.h>
 
 void i2c1__init__(uint8_t slave_address);
 
 void i2c_start(void);
-void I2C_WriteCommand(uint8_t RegisterAddress, uint8_t data);
+int I2C_WriteCommand(uint8_t RegisterAddress, uint8_t data);
 
 
 void i2c_slave_address(uint8_t slave_address);
@@ -29,6 +30,7 @@ void i2c_slave_address(uint8_t slave_address);
 void i2c_multi_write(uint8_t RegisterAddress, uint8_t *data, uint8_t n_data);
 void i2c_stop(void);
 
+uint8_t i2c_WaitForFlag(uint32_t flag, uint32_t timeout);
 
 
 void delay(uint32_t t);
