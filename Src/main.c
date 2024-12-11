@@ -41,6 +41,7 @@
 #include"i2c1.h"
 #include "oled.h"
 #include"eeprom.h"
+#include "temp_sensor.h"
 
 /* System Configuration Constants */
 #define SYSTEM_CLOCK_FREQ   (48000000U) /* 48 MHz system clock */
@@ -76,10 +77,37 @@ int main(void)
     uint8_t slave_address = 0x3C;
     i2c1__init__(slave_address);
 
-    //oled_trial_commands();
+	while((I2C1 -> ISR & I2C_ISR_BUSY));
 
-    eeprom_write(0x00, 0x55, 0x55);
-    eeprom_read(0x55);
+	I2C1 -> CR2 = 0;
+
+	I2C1 -> CR2 = I2C_CR2_AUTOEND | (5<<16) | (8 << 1 );
+
+
+    i2c_start();
+    //check if txdr is empty (means if bit is set)
+	//sending the slave address
+//    while (!(I2C1->ISR & I2C_ISR_TXE)){;}
+//    I2C1 -> TXDR = (OLED_I2C_ADDR);
+
+
+    char *buffer = "Hello";
+
+    for(int i = 0; i < 8; i++)
+    {
+    	//sending the actual data
+        while (!(I2C1->ISR & I2C_ISR_TXE)){;}
+        I2C1 -> TXDR = *buffer;
+        buffer++;
+    }
+
+
+	//waiting for I2C to generate the stop bit
+     while(!((I2C1 -> ISR & (1 << 5))));
+     I2C1 -> ICR |= I2C_ICR_STOPCF;
+    //oled_trial_commands();
+//    humidity_read();
+
 
 //     while(1)
 //     {
