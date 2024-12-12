@@ -74,59 +74,11 @@ void arduino_send_msg();
 int main(void)
 {
     /* Initialize printf output via ST-Link COM port */
-    printf("\r\nHello world\n\r");
     printf("\n\r");
 
     uint8_t slave_address = 0x3C;
     i2c1__init__(slave_address);
     oled_trial_commands();
-//	while((I2C1 -> ISR & I2C_ISR_BUSY));
-//
-//	I2C1 -> CR2 = 0;
-//
-//	I2C1 -> CR2 = I2C_CR2_AUTOEND | I2C_CR2_RD_WRN |  (2<<16) | (8 << 1 );
-//	i2c_start();
-//
-//    while(!((I2C1 -> ISR & (1 << 5))));
-//    I2C1 -> ICR |= I2C_ICR_STOPCF;
-//
-//
-//    i2c_start();
-////    //check if txdr is empty (means if bit is set)
-////	//sending the slave address
-//////    while (!(I2C1->ISR & I2C_ISR_TXE)){;}
-//////    I2C1 -> TXDR = (OLED_I2C_ADDR);
-////
-////
-////    char *buffer = "Hello World";
-////
-////    for(int i = 0; i < 5; i++)
-////    {
-////    	//sending the actual data
-////        while (!(I2C1->ISR & I2C_ISR_TXE)){;}
-////        I2C1 -> TXDR = *buffer;
-////        buffer++;
-////    }
-//
-//	//waiting for I2C to generate the stop bit
-//     while(!((I2C1 -> ISR & (1 << 5))));
-//     I2C1 -> ICR |= I2C_ICR_STOPCF;
-//     printf("out of interuupt \n\r");
-     //printf("val[0]  %ld     val[1]   %ld\n\r", val[0], val[1]);
-
-
-//    humidity_read();
-
-
-//     while(1)
-//     {
-//     	printf("off\n\r");
-//     	SSD1306_SEND_CMD(0xAE);  // Display OFF
-//     	//for(int i = 0; i< 1000000; i++);
-//     	printf("on\n\r");
-//     	SSD1306_SEND_CMD(0xAf);  // Display On
-//
-//     }
 
 
     printf("Entering the loop\n\r");
@@ -136,6 +88,7 @@ int main(void)
     while(1)
     {
     	char receivedData[3];
+
     	printf("rcv req send \n\r");
     	printf("\n\r");
     	arduino_rcv_msg(receivedData, 2);
@@ -156,18 +109,18 @@ int main(void)
     	char humidityBuffer[10];
     	sprintf(humidityBuffer, "%d", receivedData[1]); // Format humidity
     	puts_SSD1306(humidityBuffer, &Font_7x10, SSD1306_COLOR_WHITE);
-        updateScreen_SSD1306();
 
-//
+
+
 //        	//send arduino msg back as data recieved
         	printf("\n\rsend req send \n\r");
         	arduino_send_msg();
-        	delay(100000);
+        	gotoXY_SSD1306(0, 35); // Position for humidity line
+        	puts_SSD1306("ACK SENT TO ARDUINO", &Font_7x10, SSD1306_COLOR_WHITE);
+        	updateScreen_SSD1306();
+        	delay(1000000);
 
-//        	printf("\n\r");
 
-//        }
-        //printf("isr_flag %d\n\r", isr_flag);
     }
 
     return 0;  /* Should never reach this point */
@@ -214,7 +167,7 @@ void arduino_rcv_msg(char *str, size_t len)
         while (!(I2C1->ISR & I2C_ISR_RXNE)) {
             // Optionally, implement a timeout mechanism here
         }
-    	//isr_flag = 1;
+
         // Read a byte from the RXDR register
         str[i] = (char)(I2C1->RXDR & 0xFF);  // Mask to ensure only lower 8 bits are taken
     }
