@@ -150,7 +150,7 @@ void i2c_stop(void)
 	I2C1->CR2 |= I2C_CR2_STOP;
 
 	//waiting while TC flag is cleared
-	while((I2C1 -> ISR & (1<< I2C_ISR_TC)) != 0);
+	while((I2C1 -> ISR & (I2C_ISR_TC)) != 0);
 }
 
 /*
