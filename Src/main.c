@@ -81,44 +81,66 @@ int main(void)
     oled_trial_commands();
 
 
-    printf("Entering the loop\n\r");
+    printf("****************Readings Begin**************\n\r");
     printf("\n\r");
 
     /* Main program loop */
     while(1)
     {
     	char receivedData[3];
-
-    	printf("rcv req send \n\r");
     	printf("\n\r");
+    	printf(">> Requesting Arduino for Temperature Humidity \n\r");
+
     	arduino_rcv_msg(receivedData, 2);
     	receivedData[2] = '\0';
-    	printf("\n\rRecieved data %d %d", receivedData[0], receivedData[1]);
+    	printf(">> Recieving Temperature : %d Humidity : %d from Arduino\n\r", receivedData[0], receivedData[1]);
 
 
-    	// Display temperature on the first line
-    	gotoXY_SSD1306(0, 15); // Position for temperature line
-    	puts_SSD1306("Temp: ", &Font_7x10, SSD1306_COLOR_WHITE);
-    	char tempBuffer[10];
-    	sprintf(tempBuffer, "%d", receivedData[0]); // Format temperature
-    	puts_SSD1306(tempBuffer, &Font_7x10, SSD1306_COLOR_WHITE);
+    	if(receivedData[0] > 0)
+    	{
+        	// Display temperature on the first line
+        	gotoXY_SSD1306(0, 15); // Position for temperature line
+        	puts_SSD1306("Temp: ", &Font_7x10, SSD1306_COLOR_WHITE);
+        	char tempBuffer[10];
+        	sprintf(tempBuffer, "%d", receivedData[0]); // Format temperature
+        	puts_SSD1306(tempBuffer, &Font_7x10, SSD1306_COLOR_WHITE);
 
-    	// Display humidity on the second line
-    	gotoXY_SSD1306(0, 25); // Position for humidity line
-    	puts_SSD1306("Humidity: ", &Font_7x10, SSD1306_COLOR_WHITE);
-    	char humidityBuffer[10];
-    	sprintf(humidityBuffer, "%d", receivedData[1]); // Format humidity
-    	puts_SSD1306(humidityBuffer, &Font_7x10, SSD1306_COLOR_WHITE);
+        	// Display humidity on the second line
+        	gotoXY_SSD1306(0, 25); // Position for humidity line
+        	puts_SSD1306("Humidity: ", &Font_7x10, SSD1306_COLOR_WHITE);
+        	char humidityBuffer[10];
+        	sprintf(humidityBuffer, "%d", receivedData[1]); // Format humidity
+        	puts_SSD1306(humidityBuffer, &Font_7x10, SSD1306_COLOR_WHITE);
+
+           	//send arduino msg back as data recieved
+           	printf(">> Sending Acknowledgement to Arduino\n\r");
+           	arduino_send_msg();
+           	gotoXY_SSD1306(0, 35); // Position for humidity line
+           	puts_SSD1306("ACK sent to arduino", &Font_7x10, SSD1306_COLOR_WHITE);
+           	printf(">> Updating data on OLED\n\r");
+           	updateScreen_SSD1306();
+    	}
+    	else
+    	{
+    		printf(">> ERROR : INCORRECT RESPONSE OF TEMPERATURE AND HUMIDITY \n\r");
+    		//clearing the screen first
+    		fill_SSD1306();
+    		updateScreen_SSD1306();
+    		//Updating the error on OLED
+    		gotoXY_SSD1306 (25,5);
+    		puts_SSD1306 ("PES PROJECT", &Font_7x10, SSD1306_COLOR_WHITE);
+    		updateScreen_SSD1306();
+           	gotoXY_SSD1306(0, 15); // Position for humidity line
+           	puts_SSD1306("ERROR:FAILURE", &Font_7x10, SSD1306_COLOR_WHITE);
+           	gotoXY_SSD1306(30, 25); // Position for humidity line
+           	puts_SSD1306("SENSOR READ", &Font_7x10, SSD1306_COLOR_WHITE);
+           	updateScreen_SSD1306();
+    		fill_SSD1306();
+    		updateScreen_SSD1306();
+    	}
 
 
-
-//        	//send arduino msg back as data recieved
-        	printf("\n\rsend req send \n\r");
-        	arduino_send_msg();
-        	gotoXY_SSD1306(0, 35); // Position for humidity line
-        	puts_SSD1306("ACK SENT TO ARDUINO", &Font_7x10, SSD1306_COLOR_WHITE);
-        	updateScreen_SSD1306();
-        	delay(1000000);
+        delay(1000000);
 
 
     }
@@ -131,26 +153,24 @@ void arduino_send_msg()
 	while((I2C1 -> ISR & I2C_ISR_BUSY));
 
 	I2C1 -> CR2 = 0;
-	char *buffer = "Data  recieved";
-	I2C1 -> CR2 = I2C_CR2_AUTOEND | (14<<16) | (8 << 1 );
+	char *buffer = "Recieved Temp and Hum";
+	int len = strlen(buffer);
+	I2C1 -> CR2 = I2C_CR2_AUTOEND | (len <<16) | (8 << 1 );
 	I2C1 -> CR2 &= ~I2C_CR2_RD_WRN;
 
-	int size = sizeof(buffer);
-	(void)size;
+
     i2c_start();
 
-
-
-        for(int i = 0; i < 14; i++)
-        {
+     for(int i = 0; i < len ; i++)
+     {
         	//sending the actual data
-            while (!(I2C1->ISR & I2C_ISR_TXE)){;}
-            I2C1 -> TXDR = *buffer;
-            buffer++;
-        }
+        while (!(I2C1->ISR & I2C_ISR_TXE)){;}
+        I2C1 -> TXDR = *buffer;
+        buffer++;
+     }
 
-        while(!((I2C1 -> ISR & (1 << 5))));
-        I2C1 -> ICR |= I2C_ICR_STOPCF;
+     while(!((I2C1 -> ISR & (1 << 5))));
+     I2C1 -> ICR |= I2C_ICR_STOPCF;
 }
 
 void arduino_rcv_msg(char *str, size_t len)
