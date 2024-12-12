@@ -1,3 +1,15 @@
+/**
+ * @file oled.h
+ * @brief Header file for SSD1306 OLED Display Driver
+ *
+ * @author Bhakti Ramani
+ * @date December 12, 2024
+ * @course ECEN 5813 Principles of Embedded Software
+ *
+ * This header provides declarations and configurations for 
+ * interfacing with the SSD1306 OLED display using STM32 I2C.
+ * Includes font definitions, display commands, and drawing functions.
+ */
 
 #ifndef _OLED_H_
 #define _OLED_H_
@@ -6,42 +18,127 @@
 #include <stm32f091xc.h> /* MCU specific definitions */
 #include <stm32f0xx.h>   /* STM32F0 common definitions */
 
-#include<stdint.h>
-#include<string.h>
+#include <stdint.h>
+#include <string.h>
 
 #include "i2c1.h"
 #include "fonts.h"
 
+/** 
+ * @brief Macro to send command to OLED display 
+ * @param cmd Command byte to be sent
+ */
 #define SSD1306_SEND_CMD(cmd) 		I2C_WriteCommand(0x00, cmd)
+
+/** 
+ * @brief Macro to send data to OLED display 
+ * @param data Data byte to be sent
+ */
 #define SSD1306_SEND_DATA(data)		I2C_WriteCommand(0x40, data)
+
+/* Function Prototypes */
+
+/**
+ * @brief Executes trial commands for OLED initialization/testing
+ */
 void oled_trial_commands(void);
+
+/**
+ * @brief Alternative test command function for OLED
+ */
 void OLED_Test_Commands(void);
+
+/**
+ * @brief Sets cursor position on OLED display
+ * @param column Horizontal position (0-127)
+ * @param page Vertical page position (0-7)
+ */
 void oled_set_cursor(uint8_t column, uint8_t page);
 
+/**
+ * @brief Enumeration for display color 
+ */
 typedef enum {
-	SSD1306_COLOR_BLACK = 0x00,
-	SSD1306_COLOR_WHITE = 0x01
+	SSD1306_COLOR_BLACK = 0x00, ///< Pixel off (background)
+	SSD1306_COLOR_WHITE = 0x01  ///< Pixel on (foreground)
 }SSD1306_COLOR_t;
 
+/**
+ * @brief Prints a single character on OLED
+ * @param c Character to be printed
+ */
 void oled_print_char(char c);
 
+/**
+ * @brief Prints a null-terminated string on OLED
+ * @param str Pointer to string to be printed
+ */
 void oled_print_string(const char *str);
 
+/**
+ * @brief Fills entire OLED screen 
+ */
 void fill_SSD1306();
 
+/**
+ * @brief Updates the entire screen with current buffer
+ */
 void updateScreen_SSD1306(void);
 
+/**
+ * @brief Moves cursor to specific X,Y coordinates
+ * @param x X-coordinate (horizontal position)
+ * @param y Y-coordinate (vertical position)
+ */
 void gotoXY_SSD1306(uint16_t x, uint16_t y);
 
+/**
+ * @brief Puts a character on screen with specified font and color
+ * @param ch Character to print
+ * @param Font Pointer to font definition
+ * @param color Pixel color (white/black)
+ * @return Printed character
+ */
 char putc_SSD1306(char ch, FontDef_t* Font, SSD1306_COLOR_t color);
 
+/**
+ * @brief Puts a string on screen with specified font and color
+ * @param str String to print
+ * @param Font Pointer to font definition
+ * @param color Pixel color (white/black)
+ * @return Last character printed
+ */
 char puts_SSD1306(char* str, FontDef_t* Font, SSD1306_COLOR_t color);
 
+/**
+ * @brief Draws a single pixel on the display
+ * @param x X-coordinate
+ * @param y Y-coordinate
+ * @param color Pixel color (white/black)
+ */
 void drawPixel_SSD1306(uint16_t x, uint16_t y, SSD1306_COLOR_t color);
 
+/**
+ * @brief Draws a line between two points
+ * @param x0 Start X-coordinate
+ * @param y0 Start Y-coordinate
+ * @param x1 End X-coordinate
+ * @param y1 End Y-coordinate
+ * @param c Line color
+ */
 void drawLine_SSD1306(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, SSD1306_COLOR_t c);
 
+/**
+ * @brief Clears entire OLED screen
+ */
 void oled_clear(void);
+
+/**
+ * @brief 5x8 Font Array for OLED Display
+ * 
+ * Stores pixel column data for ASCII characters 32-126
+ * First value is ASCII value, following 5 values represent the pixel columns
+ */
 
 
 // 5x8 Font Array for OLED Display

@@ -1,3 +1,14 @@
+/**
+ * @file oled.c
+ * @brief Implementation file for SSD1306 OLED Display Driver
+ *
+ * @author Bhakti Ramani
+ * @date December 12, 2024
+ * @course ECEN 5813 Principles of Embedded Software
+ *
+ * This file provides implementation of OLED display functions 
+ * for initialization, drawing, and text rendering on SSD1306 display.
+ */
 #include "oled.h"
 
 /* SSD1306 width in pixels */
