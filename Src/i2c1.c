@@ -42,11 +42,11 @@ void i2c1__init__(uint8_t slave_address)
 	//Peripheral input clock- TIMEOUT register
     I2C1->CR1 &= ~I2C_CR1_PE;
 
-	//Recieve interrupt setup
-    I2C1->CR1 |= I2C_CR1_RXIE;
-
-    NVIC_SetPriority(I2C1_IRQn, 0);
-    NVIC_EnableIRQ(I2C1_IRQn);
+//	//Recieve interrupt setup
+//    I2C1->CR1 |= I2C_CR1_RXIE;
+//
+//    NVIC_SetPriority(I2C1_IRQn, 0);
+//    NVIC_EnableIRQ(I2C1_IRQn);
 
 
 //	I2C1->TIMINGR |= (uint32_t)0x2000090E;
@@ -59,18 +59,36 @@ void i2c1__init__(uint8_t slave_address)
 
 volatile uint32_t i2c_rcv;
 volatile int isr_flag = 0;
+volatile int byte1 = 0;
+volatile int byte2 = 0;
 
 void I2C1_IRQHandler(void)
 {
+
     // Verify interrupt status.
     if ((I2C1->ISR & I2C_ISR_RXNE) == I2C_ISR_RXNE) {
-        // Read byte (which clears RXNE flag).
-        i2c_rcv = I2C1->RXDR;
+//        // Read byte (which clears RXNE flag).
+//        i2c_rcv = I2C1->RXDR;
         isr_flag = 1;
-
-        printf("i2c_rcv %ld\n\r", i2c_rcv);
-        printf("\n\r");
-        printf("isr_flag %d\n\r", isr_flag);
+//        char *cmd;
+//        cmd =  I2C1->RXDR;
+//
+//        if(byte1 == 0)
+//        {
+//        	byte1 = I2C1->RXDR;
+//        }
+//        else if(byte1 > 0)
+//        {
+//        	byte2 = I2C1->RXDR;
+//
+//        }
+//        printf("byte1 %d\n\r", byte1);
+//        printf("byte2 %d\n\r", byte2);
+//        printf("cmd[0] %d    cmd[1]    %d\n\r", cmd[0], cmd[1]);
+//
+//        printf("i2c_rcv %ld\n\r", i2c_rcv);
+//        printf("\n\r");
+        //printf("isr_flag %d\n\r", isr_flag);
     }
 }
 

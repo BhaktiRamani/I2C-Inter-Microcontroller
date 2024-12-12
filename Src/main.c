@@ -40,8 +40,7 @@
 
 #include"i2c1.h"
 #include "oled.h"
-#include"eeprom.h"
-#include "temp_sensor.h"
+
 
 /* System Configuration Constants */
 #define SYSTEM_CLOCK_FREQ   (48000000U) /* 48 MHz system clock */
@@ -70,7 +69,7 @@
 * @note        Serial console settings: 9600 baud, No parity, 1 stop bit
 ******************************************************************************/
 
-void arduino_rcv_msg();
+void arduino_rcv_msg(char *str, size_t len);
 void arduino_send_msg();
 int main(void)
 {
@@ -136,27 +135,39 @@ int main(void)
     /* Main program loop */
     while(1)
     {
+    	char receivedData[3];
     	printf("rcv req send \n\r");
     	printf("\n\r");
-    	arduino_rcv_msg();
+    	arduino_rcv_msg(receivedData, 2);
+    	receivedData[2] = '\0';
+    	printf("\n\rRecieved data %d %d", receivedData[0], receivedData[1]);
 
-        if(isr_flag)
-        {
-        	isr_flag = 0;
-        	//print the rcv data on OLED
 
-        	gotoXY_SSD1306 (0,5);
-        	puts_SSD1306 ("Temp : something", &Font_16x26, SSD1306_COLOR_WHITE);
+    	// Display temperature on the first line
+    	gotoXY_SSD1306(0, 15); // Position for temperature line
+    	puts_SSD1306("Temp: ", &Font_7x10, SSD1306_COLOR_WHITE);
+    	char tempBuffer[10];
+    	sprintf(tempBuffer, "%d", receivedData[0]); // Format temperature
+    	puts_SSD1306(tempBuffer, &Font_7x10, SSD1306_COLOR_WHITE);
 
-        	updateScreen_SSD1306();
+    	// Display humidity on the second line
+    	gotoXY_SSD1306(0, 25); // Position for humidity line
+    	puts_SSD1306("Humidity: ", &Font_7x10, SSD1306_COLOR_WHITE);
+    	char humidityBuffer[10];
+    	sprintf(humidityBuffer, "%d", receivedData[1]); // Format humidity
+    	puts_SSD1306(humidityBuffer, &Font_7x10, SSD1306_COLOR_WHITE);
+        updateScreen_SSD1306();
 
-        	//send arduino msg back as data recieved
+//
+//        	//send arduino msg back as data recieved
+        	printf("\n\rsend req send \n\r");
         	arduino_send_msg();
-        	printf("send req send \n\r");
-        	printf("\n\r");
+        	delay(100000);
 
-        }
-        printf("isr_flag %d\n\r", isr_flag);
+//        	printf("\n\r");
+
+//        }
+        //printf("isr_flag %d\n\r", isr_flag);
     }
 
     return 0;  /* Should never reach this point */
@@ -167,16 +178,17 @@ void arduino_send_msg()
 	while((I2C1 -> ISR & I2C_ISR_BUSY));
 
 	I2C1 -> CR2 = 0;
-
+	char *buffer = "Data  recieved";
 	I2C1 -> CR2 = I2C_CR2_AUTOEND | (14<<16) | (8 << 1 );
 	I2C1 -> CR2 &= ~I2C_CR2_RD_WRN;
 
-
+	int size = sizeof(buffer);
+	(void)size;
     i2c_start();
 
-        char *buffer = "Data  recieved";
 
-        for(int i = 0; i < 13; i++)
+
+        for(int i = 0; i < 14; i++)
         {
         	//sending the actual data
             while (!(I2C1->ISR & I2C_ISR_TXE)){;}
@@ -188,7 +200,7 @@ void arduino_send_msg()
         I2C1 -> ICR |= I2C_ICR_STOPCF;
 }
 
-void arduino_rcv_msg()
+void arduino_rcv_msg(char *str, size_t len)
 {
 	while((I2C1 -> ISR & I2C_ISR_BUSY));
 
@@ -197,11 +209,22 @@ void arduino_rcv_msg()
 	I2C1 -> CR2 = I2C_CR2_AUTOEND | I2C_CR2_RD_WRN |  (2<<16) | (8 << 1 );
 
 	i2c_start();
+    for (size_t i = 0; i < len; i++) {
+        // Wait until the RXNE (Receive Not Empty) flag is set
+        while (!(I2C1->ISR & I2C_ISR_RXNE)) {
+            // Optionally, implement a timeout mechanism here
+        }
+    	//isr_flag = 1;
+        // Read a byte from the RXDR register
+        str[i] = (char)(I2C1->RXDR & 0xFF);  // Mask to ensure only lower 8 bits are taken
+    }
+
+    //isr_flag = 1;
 
     while(!((I2C1 -> ISR & (1 << 5))));
     I2C1 -> ICR |= I2C_ICR_STOPCF;
 //    printf("out of interuupt \n\r");
 
 
-    i2c_start();
+
 }

@@ -57,8 +57,8 @@ void oled_trial_commands(void) {
 
 	fill_SSD1306();
 	updateScreen_SSD1306();
-	gotoXY_SSD1306 (0,5);
-	puts_SSD1306 ("Hello World", &Font_7x10, SSD1306_COLOR_WHITE);
+	gotoXY_SSD1306 (25,5);
+	puts_SSD1306 ("PES PROJECT", &Font_7x10, SSD1306_COLOR_WHITE);
 	updateScreen_SSD1306();
 
 	/* Set default values */

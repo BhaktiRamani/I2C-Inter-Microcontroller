@@ -34,6 +34,9 @@ extern volatile uint32_t i2c_rcv;
 
 extern volatile int isr_flag;
 
+extern volatile int byte1;
+extern volatile int byte2;
+
 
 
 void delay(uint32_t t);
